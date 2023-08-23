@@ -20,6 +20,23 @@ class Login(QWidget):
         user_label = QLabel(self)
         user_label.setText("Usuario")
         user_label.setFont(QFont('Arial', 10))
+        user_label.move(20,54)
+
+        self.user_input = QLineEdit(self)
+        self.user_input.resize(250,24)
+        self.user_input.move(90,50)
+
+
+        
+        password_label = QLabel(self)
+        password_label.setText("Contraseña")
+        password_label.setFont(QFont('Arial', 10))
+        password_label.move(20,86)
+
+        self.password_input = QLineEdit(self)
+        self.password_input.resize(250,24)
+        self.password_input.move(90,82)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
