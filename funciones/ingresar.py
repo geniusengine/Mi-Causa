@@ -10,7 +10,7 @@ Auteur: danie(mitchel.dmch@gmail.com)
 ingresar.py(Ɔ) 2023
 Description : Saisissez la description puis « Tab »
 Créé le :  samedi 26 août 2023 à 18:21:39 
-Dernière modification : samedi 26 août 2023 à 18:30:17
+Dernière modification : mardi 29 août 2023 à 20:16:58
 """
 import sys
 import os
@@ -38,15 +38,14 @@ class ExcelLoaderApp(QMainWindow):
         self.central_widget.setLayout(self.layout)
 
     def load_excel_file(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.ReadOnly
-        file_path, _ = QFileDialog.getOpenFileName(self, "Cargar Archivo Excel", "", "Archivos Excel (*.xls *.xlsx);;Todos los archivos (*)", options=options)
+        file_dialog = QFileDialog()
+        file_dialog.setOptions(QFileDialog.ReadOnly)
+        file_path, _ = file_dialog.getOpenFileName(self, "Cargar Archivo Excel", "", "Archivos Excel (*.xls *.xlsx);;Todos los archivos (*)")
 
         if file_path:
             try:
                 df = pd.read_excel(file_path) 
                 self.label.setText(f"Archivo cargado: {os.path.basename(file_path)}")
-                
             except Exception as e:
                 self.label.setText(f"Error al cargar el archivo: {str(e)}")
 
