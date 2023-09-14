@@ -1,58 +1,74 @@
 import sys
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsView, QGraphicsScene
-from PyQt6.QtGui import QImage, QPixmap
 import fitz  # PyMuPDF
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QTextCursor
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTextEdit, QPushButton, QVBoxLayout, QWidget, QFileDialog
 
-class PDFViewer(QMainWindow):
+class PDFViewerApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("PDF Viewer")
+        self.setWindowTitle("PDF Viewer and Text Cleaner")
         self.setGeometry(100, 100, 800, 600)
 
-        self.central_widget = QGraphicsView(self)
-        self.setCentralWidget(self.central_widget)
+        self.text_edit = QTextEdit(self)
+        self.text_edit.setReadOnly(True)
+        self.text_edit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
-        self.scene = QGraphicsScene()
-        self.central_widget.setScene(self.scene)
+        self.load_button = QPushButton("Cargar PDF", self)
+        self.load_button.clicked.connect(self.load_pdf)
 
-        menubar = self.menuBar()
-        file_menu = menubar.addMenu("File")
+        self.clean_button = QPushButton("Limpiar", self)
+        self.clean_button.clicked.connect(self.clean_text)
 
-        open_file_action = file_menu.addAction("Open PDF")
-        open_file_action.triggered.connect(self.openPDF)
+        layout = QVBoxLayout()
+        layout.addWidget(self.load_button)
+        layout.addWidget(self.clean_button)
+        layout.addWidget(self.text_edit)
 
-    def openPDF(self):
-        options = QFileDialog.options()
-        options |= QFileDialog.ReadOnly
+        container = QWidget()
+        container.setLayout(layout)
 
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open PDF File", "", "PDF Files (*.pdf);;All Files (*)", options=options)
+        self.setCentralWidget(container)
 
-        if file_path:
-            self.displayPDF(file_path)
+    def load_pdf(self):
+        file_name, _ = QFileDialog.getOpenFileName(self, "Abrir PDF", "", "Archivos PDF (*.pdf);;Todos los archivos (*)")
+        if file_name:
+            pdf_document = fitz.open(file_name)
+            text = ""
+            for page_num in range(pdf_document.page_count):
+                page = pdf_document.load_page(page_num)
+                text += page.get_text()
+            self.text_edit.setPlainText(text)
 
-    def displayPDF(self, file_path):
-        pdf_document = fitz.open(file_path)
+    def clean_text(self):
+        text = self.text_edit.toPlainText()
+        cleaned_text = self.replace_special_characters(text)
+        self.text_edit.setPlainText(cleaned_text)
 
-        page = pdf_document.load_page(0)  # Cargar la primera página
+    def replace_special_characters(self, text):
+        # Aquí puedes definir las reglas de reemplazo de caracteres especiales
+        replacements = {
+            'á': 'a',
+            'é': 'e',
+            'í': 'i',
+            'ó': 'o',
+            'ú': 'u',
+            # Agrega más reglas aquí según tus necesidades
+        }
+        cleaned_text = text
+        for char, replacement in replacements.items():
+            cleaned_text = cleaned_text.replace(char, replacement)
+        return cleaned_text
 
-        # Convertir la página PDF a una imagen
-        image = page.get_pixmap()
-
-        # Crear una imagen QImage desde la imagen de PyMuPDF
-        qt_image = QImage(image.samples, image.width, image.height, image.stride, QImage.Format.Format_RGBA8888)
-
-        # Mostrar la imagen en el QGraphicsView
-        pixmap = QPixmap.fromImage(qt_image)
-        self.scene.clear()
-        self.scene.addPixmap(pixmap)
+def main():
+    app = QApplication(sys.argv)
+    window = PDFViewerApp()
+    window.show()
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    viewer = PDFViewer()
-    viewer.show()
-    sys.exit(app.exec())
+    main()
