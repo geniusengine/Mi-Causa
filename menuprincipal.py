@@ -10,7 +10,7 @@ Auteur: danie(mitchel.dmch@gmail.com)
 menuprincipal.py(Ɔ) 2023
 Description : Saisissez la description puis « Tab »
 Créé le :  samedi 26 août 2023 à 18:44:12 
-Dernière modification : mercredi 4 octobre 2023 à 21:48:17
+Dernière modification : mercredi 4 octobre 2023 à 21:50:22
 """
 
 import sys
