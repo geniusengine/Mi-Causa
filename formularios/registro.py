@@ -10,60 +10,89 @@ Auteur: danie(mitchel.dmch@gmail.com)
 registro.py(Ɔ) 2023
 Description : Saisissez la description puis « Tab »
 Créé le :  samedi 26 août 2023 à 18:37:13 
-Dernière modification : samedi 26 août 2023 à 18:37:47
+Dernière modification : mercredi 4 octobre 2023 à 19:00:15
 """
-
 import sys
+import sqlite3
+from passlib.hash import bcrypt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtSql import QSqlDatabase, QSqlQuery
 
-class UserRegistrationApp(QMainWindow):
+class RegisterApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Registro de Usuarios")
+        self.init_ui()
+        self.init_db()
 
-        self.central_widget = QWidget(self)
+    def init_ui(self):
+        self.setWindowTitle("Registro de Usuario")
+        self.setGeometry(100, 100, 300, 250)
+
+        self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
 
         self.layout = QVBoxLayout()
 
-        self.label = QLabel("Registro de Usuarios")
-        self.layout.addWidget(self.label)
-
+        self.name_label = QLabel("Nombre:")
         self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("Nombre")
-        self.layout.addWidget(self.name_input)
-
-        self.lastname_input = QLineEdit()
-        self.lastname_input.setPlaceholderText("Apellido")
-        self.layout.addWidget(self.lastname_input)
-
+        self.email_label = QLabel("Correo Electrónico:")
+        self.email_input = QLineEdit()
+        self.username_label = QLabel("Usuario:")
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Usuario")
-        self.layout.addWidget(self.username_input)
-
+        self.password_label = QLabel("Contraseña:")
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Contraseña")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.layout.addWidget(self.password_input)
-
         self.register_button = QPushButton("Registrar")
         self.register_button.clicked.connect(self.register_user)
+
+        self.layout.addWidget(self.name_label)
+        self.layout.addWidget(self.name_input)
+        self.layout.addWidget(self.email_label)
+        self.layout.addWidget(self.email_input)
+        self.layout.addWidget(self.username_label)
+        self.layout.addWidget(self.username_input)
+        self.layout.addWidget(self.password_label)
+        self.layout.addWidget(self.password_input)
         self.layout.addWidget(self.register_button)
 
         self.central_widget.setLayout(self.layout)
 
+    def init_db(self):
+        db = QSqlDatabase.addDatabase("QSQLITE")
+        db.setDatabaseName("usuarios.db")
+
+        if not db.open():
+            print("Error al conectar a la base de datos.")
+            sys.exit(1)
+
+        self.query = QSqlQuery()
+
     def register_user(self):
         name = self.name_input.text()
-        lastname = self.lastname_input.text()
+        email = self.email_input.text()
         username = self.username_input.text()
         password = self.password_input.text()
 
-        # este lado para hacer el almacenamiento en la base de datos
-        print(f"Usuario registrado:\nNombre: {name}\nApellido: {lastname}\nUsuario: {username}\nContraseña: {password}")
+        # Cifrar la contraseña antes de almacenarla
+        hashed_password = bcrypt.hash(password)
 
-if __name__ == "__main__":
+        # Insertar el nuevo usuario en la base de datos
+        if self.query.exec("INSERT INTO usuarios (nombre, email, username, password) VALUES (?, ?, ?, ?)",
+                           (name, email, username, hashed_password)):
+            print("Registro exitoso.")
+        else:
+            print("Error al registrar el usuario:", self.query.lastError().text())
+
+def main():
     app = QApplication(sys.argv)
-    window = UserRegistrationApp()
-    window.show()
+    register_app = RegisterApp()
+    register_app.show()
+
+    # Cierra la conexión de la base de datos cuando se cierra la aplicación
+    app.aboutToQuit.connect(register_app.close_db_connection)
+
     sys.exit(app.exec())
+
+if __name__ == '__main__':
+    main()

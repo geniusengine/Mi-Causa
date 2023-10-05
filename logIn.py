@@ -1,44 +1,74 @@
 import sys
-from PyQt6 import QtCore
-from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QLineEdit, QPushButton, QMessageBox, QCheckBox
-from PyQt6.QtGui import QFont, QPixmap
+import sqlite3
+from passlib.hash import bcrypt
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtSql import QSqlDatabase, QSqlQuery
 
-class Login(QWidget):
+class LoginApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.inicializar_ui()
 
-    def inicializar_ui(self):
-        self.setGeometry(100, 100, 350, 250)
-        self.setWindowTitle("Inicio de sesión")
-        self.generar_formulario()
-        self.show()
+        self.init_ui()
+        self.init_db()
 
-    def generar_formulario(self):
-        self.is_logged = False
+    def init_ui(self):
+        self.setWindowTitle("Inicio de Sesión")
+        self.setGeometry(100, 100, 300, 200)
 
-        user_label = QLabel(self)
-        user_label.setText("Usuario")
-        user_label.setFont(QFont('Arial', 10))
-        user_label.move(20,54)
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
 
-        self.user_input = QLineEdit(self)
-        self.user_input.resize(250,24)
-        self.user_input.move(90,50)
+        self.layout = QVBoxLayout()
 
+        self.username_label = QLabel("Usuario:")
+        self.username_input = QLineEdit()
+        self.password_label = QLabel("Contraseña:")
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.login_button = QPushButton("Iniciar Sesión")
+        self.login_button.clicked.connect(self.authenticate)
+
+        self.layout.addWidget(self.username_label)
+        self.layout.addWidget(self.username_input)
+        self.layout.addWidget(self.password_label)
+        self.layout.addWidget(self.password_input)
+        self.layout.addWidget(self.login_button)
+
+        self.central_widget.setLayout(self.layout)
+
+    def init_db(self):
+        db = QSqlDatabase.addDatabase("QSQLITE")
+        db.setDatabaseName("usuarios.db")
+
+        if not db.open():
+            print("Error al conectar a la base de datos.")
+            sys.exit(1)
+
+        self.query = QSqlQuery()
+
+    def authenticate(self):
+        username = self.username_input.text()
+        password = self.password_input.text()
 
         
-        password_label = QLabel(self)
-        password_label.setText("Contraseña")
-        password_label.setFont(QFont('Arial', 10))
-        password_label.move(20,86)
+        if self.query.exec("SELECT password FROM usuarios WHERE username = ?", (username,)) and self.query.next():
+            stored_password = self.query.value(0)
+            if bcrypt.verify(password, stored_password):
+                print("Inicio de sesión exitoso.")
+            else:
+                print("Contraseña incorrecta.")
+        else:
+            print("Usuario no encontrado.")
 
-        self.password_input = QLineEdit(self)
-        self.password_input.resize(250,24)
-        self.password_input.move(90,82)
+def main():
+    app = QApplication(sys.argv)
+    login_app = LoginApp()
+    login_app.show()
 
+    # Cierra la conexión de la base de datos cuando se cierra la aplicación
+    app.aboutToQuit.connect(login_app.close_db_connection)
+
+    sys.exit(app.exec())
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    login = Login()
-    sys.exit(app.exec())
+    main()
