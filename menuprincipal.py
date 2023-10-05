@@ -10,11 +10,11 @@ Auteur: danie(mitchel.dmch@gmail.com)
 menuprincipal.py(Ɔ) 2023
 Description : Saisissez la description puis « Tab »
 Créé le :  samedi 26 août 2023 à 18:44:12 
-Dernière modification : mercredi 4 octobre 2023 à 21:31:37
+Dernière modification : mercredi 4 octobre 2023 à 21:48:17
 """
 
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QMessageBox, QInputDialog
 from login import LoginApp
 from formularios.registro import RegisterApp
 
@@ -48,9 +48,8 @@ class MainMenu(QMainWindow):
         self.login_app.show()
 
     def open_registro(self):
-        #Verificar usuario y contraseña designados aquí
-        usuario_designado = "usuario_designado"
-        contrasena_designada = "contrasena_designada"
+        usuario_designado = "RobertoNarigon"
+        contrasena_designada = "tulachi"
 
         usuario_ingresado, contrasena_ingresada = self.get_usuario_contraseña()
 
@@ -58,14 +57,20 @@ class MainMenu(QMainWindow):
             self.registro_app = RegisterApp()
             self.registro_app.show()
         else:
-            print("Usuario y/o contraseña incorrectos.")
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle("Error")
+            msg_box.setText("Usuario y/o contraseña incorrectos.")
+            msg_box.setIcon(QMessageBox.Icon.Critical)
+            msg_box.exec()
 
     def get_usuario_contraseña(self):
-        # Implementar la obtención de usuario y contraseña aquí
-        # Puedes usar un cuadro de diálogo, por ejemplo.
-        usuario = "usuario_ingresado"
-        contraseña = "contraseña_ingresada"
+        usuario, ok1 = self.get_input("Ingrese el usuario:")
+        contraseña, ok2 = self.get_input("Ingrese la contraseña:")
         return usuario, contraseña
+
+    def get_input(self, prompt):
+        text, ok = QInputDialog.getText(self, "Entrada", prompt)
+        return text, ok
 
 def main():
     app = QApplication(sys.argv)
