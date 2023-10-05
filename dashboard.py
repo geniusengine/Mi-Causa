@@ -1,80 +1,158 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QLabel, QComboBox, QHBoxLayout, QLineEdit, QPushButton
-from PyQt6.QtGui import QColor, QBrush
-from xlsxwriter import Workbook
+import os
+import openpyxl
+import PyPDF2
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QLabel, QPushButton, QWidget, QDockWidget, QFileDialog, QTextEdit, QListWidget, QListWidgetItem
+from PyQt6.QtCore import Qt
 
-
-class ExcelEditor(QMainWindow):
-    def __init__(self):
+class Dashboard(QMainWindow):
+    def __init__(self, username):
         super().__init__()
 
-        self.initUI()
+        self.username = username
+        self.init_ui()
 
-    def initUI(self):
-        self.setWindowTitle("Excel Data Editor")
+    def init_ui(self):
+        self.setWindowTitle("Dashboard")
         self.setGeometry(100, 100, 800, 600)
 
-        layout = QVBoxLayout()
+        # Área superior: Nombre de la persona
+        top_widget = QWidget()
+        top_layout = QVBoxLayout()
+        top_layout.addWidget(QLabel(f"Bienvenido, {self.username}"))
+        top_widget.setLayout(top_layout)
+        self.setMenuWidget(top_widget)
 
-        filter_layout = QHBoxLayout()
-        self.filter_column_label = QLabel("Filter by Column:")
-        self.filter_column_combo = QComboBox()
-        self.filter_column_combo.currentTextChanged.connect(self.apply_filter)
-        self.filter_value_label = QLabel("Filter Value:")
-        self.filter_value_input = QLineEdit()
-        self.filter_button = QPushButton("Apply Filter")
-        self.filter_button.clicked.connect(self.apply_filter)
+        # Menú lateral con botones
+        sidebar_widget = QDockWidget()
+        sidebar_widget.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
+        sidebar_layout = QVBoxLayout()
+        sidebar_buttons = []
 
-        filter_layout.addWidget(self.filter_column_label)
-        filter_layout.addWidget(self.filter_column_combo)
-        filter_layout.addWidget(self.filter_value_label)
-        filter_layout.addWidget(self.filter_value_input)
-        filter_layout.addWidget(self.filter_button)
+        ingresar_button = QPushButton("Ingresar")
+        mostrar_button = QPushButton("Mostrar")
+        cerrar_sesion_button = QPushButton("Cerrar Sesión")
 
-        layout.addLayout(filter_layout)
+        sidebar_buttons.append(ingresar_button)
+        sidebar_buttons.append(mostrar_button)
+        sidebar_buttons.append(cerrar_sesion_button)
 
-        self.table_widget = QTableWidget()
-        self.load_data()
+        for button in sidebar_buttons:
+            sidebar_layout.addWidget(button)
 
-        layout.addWidget(self.table_widget)
+        sidebar_widget.setWidget(QWidget(self))
+        sidebar_widget.widget().setLayout(sidebar_layout)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, sidebar_widget)
 
+        # Área central
         central_widget = QWidget()
-        central_widget.setLayout(layout)
+        central_layout = QVBoxLayout()
+        central_widget.setLayout(central_layout)
         self.setCentralWidget(central_widget)
 
-    #def load_data(self):
-       # workbook = Workbook("data.xlsx")
-        #sheet = workbook.active
+        # Elementos para la carga de archivos
+        upload_button = QPushButton("Cargar Archivos")
+        upload_button.clicked.connect(self.upload_files)
+        central_layout.addWidget(upload_button)
+        self.uploaded_files = []  # Lista para almacenar rutas de archivos cargados
 
-       # self.table_widget.setRowCount(sheet.max_row)
-        #self.table_widget.setColumnCount(sheet.max_column)
+        # Botón para elegir entre Excel y PDF
+        choose_type_button = QPushButton("Elegir Tipo de Archivo")
+        choose_type_button.setVisible(False)
+        choose_type_button.clicked.connect(self.choose_file_type)
+        central_layout.addWidget(choose_type_button)
 
-        #for col_index, col_letter in enumerate(sheet.iter_cols(min_row=1, max_row=1)):
-         #   self.filter_column_combo.addItem(col_letter[0])
+        # TextEdit para mostrar la información
+        text_edit = QTextEdit()
+        central_layout.addWidget(text_edit)
+        
+        # Botón para volver desde la vista de archivo a la lista
+        back_button = QPushButton("Volver a la Lista")
+        back_button.setVisible(False)
+        back_button.clicked.connect(self.show_ingresar)  # Volver al estado de ingreso
+        central_layout.addWidget(back_button)
 
-        #for row in sheet.iter_rows(values_only=True):
-         #   row_index = sheet.iter_rows(values_only=True).index(row)
-          #  for col_index, cell_value in enumerate(row):
-           #     item = QTableWidgetItem(str(cell_value))
-            #    self.table_widget.setItem(row_index, col_index, item)
+        # Lista de archivos
+        file_list = QListWidget()
+        file_list.itemClicked.connect(self.show_file_info)
+        file_list.setVisible(False)
+        central_layout.addWidget(file_list)
 
-    #def apply_filter(self):
-    #    column_index = self.filter_column_combo.currentIndex()
-    #    filter_value = self.filter_value_input.text().lower()
-#
-    #    for row_index in range(self.table_widget.rowCount()):
-    #        item = self.table_widget.item(row_index, column_index)
-    #        cell_value = item.text().lower()
-#
-    #        if filter_value in cell_value:
-    #            item.setBackground(QBrush(QColor(255, 255, 255)))
-    #        else:
-    #            item.setBackground(QBrush(QColor(200, 200, 200)))
-#
-#
-#if __name__ == "__main__":
-#    app = QApplication(sys.argv)
-#    mainWindow = ExcelEditor()
-#    mainWindow.show()
-#    sys.exit(app.exec_())
-#
+    def show_ingresar(self):
+        self.upload_button.setVisible(True)
+        self.choose_type_button.setVisible(True)
+        self.text_edit.clear()
+        self.show_widget(self.upload_button)
+        self.show_widget(self.choose_type_button)
+        self.hide_widget(self.text_edit)
+        self.hide_widget(self.back_button)
+        self.uploaded_files.clear()
+        self.selected_file_path = None
+
+    def show_mostrar(self):
+        self.text_edit.clear()
+        self.show_widget(self.text_edit)
+        self.show_widget(self.back_button)
+        self.hide_widget(self.upload_button)
+        self.hide_widget(self.choose_type_button)
+        self.show_file_list()
+
+    def upload_files(self):
+        file_paths, _ = QFileDialog.getOpenFileNames(self, "Seleccionar Archivos", "", "Excel Files (*.xlsx);;PDF Files (*.pdf)")
+        self.uploaded_files.extend(file_paths)
+
+    def choose_file_type(self):
+        # Lógica para elegir entre Excel y PDF
+        pass
+
+    def process_pdf(self, pdf_path):
+        # Lógica para procesar el archivo PDF (limpiar caracteres, etc.)
+        pass
+
+    def process_excel(self, excel_path):
+        # Lógica para procesar el archivo Excel y guardar en la base de datos
+        pass
+
+    def show_file_list(self):
+        self.file_list.clear()
+        # Agregar archivos a la lista
+        for file_path in self.uploaded_files:
+            item = QListWidgetItem(os.path.basename(file_path))
+            self.file_list.addItem(item)
+        self.file_list.setVisible(True)
+        self.back_button.setVisible(True)
+
+    def show_file_info(self, item):
+        # Mostrar información del archivo seleccionado
+        self.text_edit.clear()
+        file_name = item.text()
+        file_path = os.path.join(self.uploaded_files, file_name)  # Obtener la ruta completa del archivo
+        self.selected_file_path = file_path
+        self.text_edit.setPlainText(f"Mostrando archivo: {file_name}\n")
+        if file_path.endswith(".pdf"):
+            # Lógica para mostrar el contenido de un archivo PDF
+            pass
+        elif file_path.endswith(".xlsx"):
+            # Lógica para mostrar el contenido de un archivo Excel
+            pass
+
+    def return_to_login(self):
+        self.hide()
+        self.login_window = LoginApp()
+        self.login_window.show()
+
+    def show_widget(self, widget):
+        widget.setVisible(True)
+
+    def hide_widget(self, widget):
+        widget.setVisible(False)
+
+def main():
+    app = QApplication(sys.argv)
+    username = "usuario"  # Supongamos que el usuario "usuario" ha iniciado sesión
+    dashboard = Dashboard(username)
+    dashboard.show()
+    sys.exit(app.exec())
+
+if __name__ == '__main__':
+    main()

@@ -1,5 +1,5 @@
 import sys
-import sqlite3
+import mysql.connector
 from passlib.hash import bcrypt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery
@@ -37,28 +37,42 @@ class LoginApp(QMainWindow):
         self.central_widget.setLayout(self.layout)
 
     def init_db(self):
-        db = QSqlDatabase.addDatabase("QSQLITE")
-        db.setDatabaseName("usuarios.db")
+        self.db = mysql.connector.connect(
+            host="localhost",
+            user="tu_usuario_mysql",
+            password="tu_contraseña_mysql",
+            database="tu_base_de_datos_mysql"
+        )
 
-        if not db.open():
-            print("Error al conectar a la base de datos.")
+        if not self.db.is_connected():
+            print("Error al conectar a la base de datos MySQL.")
             sys.exit(1)
 
-        self.query = QSqlQuery()
+        self.cursor = self.db.cursor()
 
     def authenticate(self):
         username = self.username_input.text()
         password = self.password_input.text()
 
-        
-        if self.query.exec("SELECT password FROM usuarios WHERE username = ?", (username,)) and self.query.next():
-            stored_password = self.query.value(0)
+        # Consultar la base de datos MySQL para verificar las credenciales
+        sql = "SELECT password FROM usuarios WHERE username = %s"
+        values = (username,)
+
+        self.cursor.execute(sql, values)
+        result = self.cursor.fetchone()
+
+        if result:
+            stored_password = result[0]
             if bcrypt.verify(password, stored_password):
                 print("Inicio de sesión exitoso.")
             else:
                 print("Contraseña incorrecta.")
         else:
             print("Usuario no encontrado.")
+
+    def close_db_connection(self):
+        self.cursor.close()
+        self.db.close()
 
 def main():
     app = QApplication(sys.argv)
@@ -72,3 +86,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+

@@ -10,10 +10,10 @@ Auteur: danie(mitchel.dmch@gmail.com)
 registro.py(Ɔ) 2023
 Description : Saisissez la description puis « Tab »
 Créé le :  samedi 26 août 2023 à 18:37:13 
-Dernière modification : mercredi 4 octobre 2023 à 19:00:15
+Dernière modification : mercredi 4 octobre 2023 à 23:00:05
 """
 import sys
-import sqlite3
+import mysql.connector
 from passlib.hash import bcrypt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery
@@ -59,14 +59,18 @@ class RegisterApp(QMainWindow):
         self.central_widget.setLayout(self.layout)
 
     def init_db(self):
-        db = QSqlDatabase.addDatabase("QSQLITE")
-        db.setDatabaseName("usuarios.db")
+        self.db = mysql.connector.connect(
+            host="localhost",
+            user="tu_usuario_mysql",
+            password="tu_contraseña_mysql",
+            database="tu_base_de_datos_mysql"
+        )
 
-        if not db.open():
-            print("Error al conectar a la base de datos.")
+        if not self.db.is_connected():
+            print("Error al conectar a la base de datos MySQL.")
             sys.exit(1)
 
-        self.query = QSqlQuery()
+        self.cursor = self.db.cursor()
 
     def register_user(self):
         name = self.name_input.text()
@@ -77,12 +81,21 @@ class RegisterApp(QMainWindow):
         # Cifrar la contraseña antes de almacenarla
         hashed_password = bcrypt.hash(password)
 
-        # Insertar el nuevo usuario en la base de datos
-        if self.query.exec("INSERT INTO usuarios (nombre, email, username, password) VALUES (?, ?, ?, ?)",
-                           (name, email, username, hashed_password)):
+        # Insertar el nuevo usuario en la base de datos MySQL
+        sql = "INSERT INTO usuarios (nombre, email, username, password) VALUES (%s, %s, %s, %s)"
+        values = (name, email, username, hashed_password)
+
+        try:
+            self.cursor.execute(sql, values)
+            self.db.commit()
             print("Registro exitoso.")
-        else:
-            print("Error al registrar el usuario:", self.query.lastError().text())
+        except Exception as e:
+            print("Error al registrar el usuario:", e)
+            self.db.rollback()
+
+    def close_db_connection(self):
+        self.cursor.close()
+        self.db.close()
 
 def main():
     app = QApplication(sys.argv)
@@ -96,3 +109,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
