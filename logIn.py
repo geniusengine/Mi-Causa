@@ -73,8 +73,8 @@ class LoginApp(QMainWindow):
                 self.close()
 
                 # Abrir la ventana del dashboard
-                dashboard_window = DashboardApp(username)
-                dashboard_window.show()
+                self.dashboard_window = DashboardApp()
+                self.dashboard_window.show()
             else:
                 # Contraseña incorrecta
                 QMessageBox.warning(self, "Inicio de Sesión", "Contraseña incorrecta.")

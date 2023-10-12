@@ -1,48 +1,66 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QLabel, QWidget
-from PyQt6.uic import loadUi
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QLabel, QStackedWidget
+from PyQt6.QtCore import Qt
+from funciones.excel import ExcelEditorApp
 
-class DashboardApp(QMainWindow):
-    def __init__(self, username):
+
+class Dashboard(QMainWindow):
+    def __init__(self):
         super().__init__()
 
-        # Cargar la interfaz desde el archivo .ui
-        loadUi("dashboard.ui", self)
+        self.initUI()
 
+    def initUI(self):
+        # Configura la ventana principal
+        self.setWindowTitle("Dashboard en PyQt6")
+        self.setGeometry(100, 100, 800, 600)
 
-        # Configurar la parte superior, izquierda y centro como secciones
-        self.top_section = QWidget()
-        self.left_section = QWidget()
-        self.center_section = QWidget()
-
-        self.top_layout = QVBoxLayout(self.top_section)
-        self.left_layout = QVBoxLayout(self.left_section)
-
-        # Obtener el nombre del usuario desde la base de datos o cualquier otro método
-        self.username = username
-
-        # Mostrar un mensaje de bienvenida con el nombre del usuario
-        welcome_label = QLabel(f"Bienvenido, {self.username}!")
-        self.top_layout.addWidget(welcome_label)
-
-        # Agregar las secciones al diseño principal
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(self.top_section)
-        main_layout.addWidget(self.left_section)
-        main_layout.addWidget(self.center_section)
-
-        central_widget = QWidget()
-        central_widget.setLayout(main_layout)
+        # Crea un widget central
+        central_widget = QWidget(self)
         self.setCentralWidget(central_widget)
 
-def main():
-    # Supongamos que has obtenido el nombre de usuario de la base de datos después de la autenticación.
-    username = "Nombre de Usuario"  # Reemplaza esto con el nombre real del usuario.
+        # Crea un diseño vertical para organizar los widgets
+        layout = QVBoxLayout()
 
+        # Crea un QStackedWidget para gestionar las diferentes ventanas
+        self.stacked_widget = QStackedWidget()
+
+        # Agrega la ventana actual (puedes personalizar esta ventana)
+        current_window = QWidget()
+        label = QLabel("Contenido del dashboard va aquí")
+        current_window.layout = QVBoxLayout()
+        current_window.layout.addWidget(label)
+        current_window.setLayout(current_window.layout)
+        self.stacked_widget.addWidget(current_window)
+
+        # Agrega botones en la parte superior
+        button_ingresar = QPushButton("Ingresar")
+        button_mostrar = QPushButton("Mostrar")
+        button_cerrar_sesion = QPushButton("Cerrar Sesión")
+
+        layout.addWidget(button_ingresar)
+        layout.addWidget(button_mostrar)
+        layout.addWidget(button_cerrar_sesion)
+        layout.addWidget(self.stacked_widget)
+
+        # Conecta el botón "Ingresar" para cambiar a la ventana de Excel
+        button_ingresar.clicked.connect(self.show_excel_window)
+
+        # Establece el diseño en el widget central
+        central_widget.setLayout(layout)
+
+    def show_excel_window(self):
+        # Cambia a la ventana de Excel
+        excel_window = ExcelEditorApp()
+        self.stacked_widget.addWidget(excel_window)
+        self.stacked_widget.setCurrentWidget(excel_window)
+
+def main():
     app = QApplication(sys.argv)
-    window = DashboardApp(username)
-    window.show()
+    dashboard = Dashboard()
+    dashboard.show()
     sys.exit(app.exec())
 
 if __name__ == "__main__":
     main()
+
