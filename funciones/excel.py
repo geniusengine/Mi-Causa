@@ -1,20 +1,6 @@
-"""
- _______       _            _     _          ______        _                 _ 
-(_______)     (_)       _  (_)   | |        (____  \      (_)               | |
- _______  ____ _  ___ _| |_ _  __| |_____    ____)  ) ____ _ _____ ____   __| |
-|  ___  |/ ___) |/___|_   _) |/ _  | ___ |  |  __  ( / ___) (____ |  _ \ / _  |
-| |   | | |   | |___ | | |_| ( (_| | ____|  | |__)  ) |   | / ___ | | | ( (_| |
-|_|   |_|_|   |_(___/   \__)_|\____|_____)  |______/|_|   |_\_____|_| |_|\____|
-    
-Auteur: danie(mitchel.dmch@gmail.com) 
-prueba.py(Ɔ) 2023
-Description : Saisissez la description puis « Tab »
-Créé le :  mardi 29 août 2023 à 21:01:46 
-Dernière modification : mardi 29 août 2023 à 21:31:00
-"""
-
 import sys
 import pandas as pd
+import mysql.connector
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QComboBox, QLineEdit, QTableWidget, QTableWidgetItem, QFileDialog
 
 class ExcelEditorApp(QMainWindow):
@@ -22,6 +8,7 @@ class ExcelEditorApp(QMainWindow):
         super().__init__()
 
         self.init_ui()
+        self.init_database()
 
     def init_ui(self):
         self.setWindowTitle('Excel Editor App')
@@ -55,13 +42,22 @@ class ExcelEditorApp(QMainWindow):
         self.load_button.clicked.connect(self.load_excel)
         self.layout.addWidget(self.load_button)
 
-        self.save_button = QPushButton('Save Changes')
-        self.save_button.clicked.connect(self.save_changes)
+        self.save_button = QPushButton('Save Changes to Database')
+        self.save_button.clicked.connect(self.save_changes_to_database)
         self.layout.addWidget(self.save_button)
 
         self.central_widget.setLayout(self.layout)
 
         self.loaded_data = None
+
+    def init_database(self):
+        self.conn = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='',  # Coloca la contraseña de tu base de datos
+            database='mi_causa'
+        )
+        self.cursor = self.conn.cursor()
 
     def load_excel(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Excel File", "", "Excel Files (*.xlsx)")
@@ -90,7 +86,7 @@ class ExcelEditorApp(QMainWindow):
         if self.loaded_data is not None:
             column = self.filter_column_combo.currentText()
             value = self.filter_value_input.text()
-            
+
             if column and value:
                 filtered_data = self.loaded_data[self.loaded_data[column] == value]
                 self.populate_table_with_filtered_data(filtered_data)
@@ -106,16 +102,18 @@ class ExcelEditorApp(QMainWindow):
                 item = QTableWidgetItem(str(data.iat[row, col]))
                 self.table_widget.setItem(row, col, item)
 
-    def save_changes(self):
+    def save_changes_to_database(self):
         if self.loaded_data is not None:
             for row in range(self.loaded_data.shape[0]):
-                for col in range(self.loaded_data.shape[1]):
-                    item = self.table_widget.item(row, col)
-                    if item is not None:
-                        self.loaded_data.iat[row, col] = item.text()
+                data = [str(self.table_widget.item(row, col).text()) for col in range(self.loaded_data.shape[1])]
+                query = '''
+                    INSERT INTO DatosCausas (NumeroJuicio, AFP, Nombre, Domicilio, RolCausa, TipoCausa, Pagar)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                '''
+                self.cursor.execute(query, data)
 
-            self.loaded_data.to_excel('edited_data.xlsx', index=False)
-            print("Changes saved to edited_data.xlsx")
+            self.conn.commit()
+            print("Changes saved to database")
 
 def main():
     app = QApplication(sys.argv)
