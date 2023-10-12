@@ -1,80 +1,151 @@
-"""
- _______       _            _     _          ______        _                 _ 
-(_______)     (_)       _  (_)   | |        (____  \      (_)               | |
- _______  ____ _  ___ _| |_ _  __| |_____    ____)  ) ____ _ _____ ____   __| |
-|  ___  |/ ___) |/___|_   _) |/ _  | ___ |  |  __  ( / ___) (____ |  _ \ / _  |
-| |   | | |   | |___ | | |_| ( (_| | ____|  | |__)  ) |   | / ___ | | | ( (_| |
-|_|   |_|_|   |_(___/   \__)_|\____|_____)  |______/|_|   |_\_____|_| |_|\____|
-    
-Auteur: danie(danie.pro@gmail.com) 
-estoycansadojefe.py(Ɔ) 2023
-Description : Saisissez la description puis « Tab »
-Créé le :  jeudi 12 octobre 2023 à 2:18:36 
-Dernière modification : jeudi 12 octobre 2023 à 2:19:14
-"""
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QListWidget, QWidget, QVBoxLayout
+import os
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTextEdit, QPushButton, QVBoxLayout, QWidget, QFileDialog
 import mysql.connector
 from docx import Document
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+import smtplib
 
-class DocumentListApp(QMainWindow):
+class WordDocumentApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
         self.initUI()
+        self.file_name = None
 
     def initUI(self):
-        self.setWindowTitle("Lista de Documentos de Word")
-        self.setGeometry(100, 100, 400, 300)
+        self.setWindowTitle("Editor de Documentos de Word")
+        self.setGeometry(100, 100, 800, 600)
 
-        self.document_list = QListWidget(self)
-        self.document_list.itemDoubleClicked.connect(self.open_document)
+        self.text_edit = QTextEdit(self)
+        self.text_edit.setAcceptRichText(True)
+
+        self.load_button = QPushButton("Cargar Documento de Word", self)
+        self.load_button.clicked.connect(self.load_word_doc)
+
+        self.save_button = QPushButton("Guardar Cambios", self)
+        self.save_button.clicked.connect(self.save_document)
+
+        self.print_button = QPushButton("Imprimir Documento", self)
+        self.print_button.clicked.connect(self.print_document)
+
+        self.email_button = QPushButton("Enviar por Correo", self)
+        self.email_button.clicked.connect(self.send_email)
+
+        self.stamp_button = QPushButton("Agregar Estampado", self)
+        self.stamp_button.clicked.connect(self.add_stamp)
+
+        self.fill_button = QPushButton("Llenar con Datos", self)
+        self.fill_button.clicked.connect(self.fill_with_data)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.document_list)
+        layout.addWidget(self.load_button)
+        layout.addWidget(self.save_button)
+        layout.addWidget(self.text_edit)
+        layout.addWidget(self.print_button)
+        layout.addWidget(self.email_button)
+        layout.addWidget(self.stamp_button)
+        layout.addWidget(self.fill_button)
 
         container = QWidget()
         container.setLayout(layout)
 
         self.setCentralWidget(container)
 
-        # Conexión a la base de datos
         self.db = mysql.connector.connect(
             host="localhost",
-            user="root",
-            password="",
-            database="mi_causa"
+            user="tu_usuario",
+            password="tu_contraseña",
+            database="tu_base_de_datos"
         )
 
-        # Cargar la lista de documentos desde la base de datos
-        self.load_documents()
+    def load_word_doc(self):
+        self.file_name, _ = QFileDialog.getOpenFileName(self, "Abrir Documento de Word", "", "Archivos de Word (*.docx);;Todos los archivos (*)")
+        if self.file_name:
+            doc = Document(self.file_name)
+            text = ""
+            for paragraph in doc.paragraphs:
+                text += paragraph.text
+            self.text_edit.setPlainText(text)
 
-    def load_documents(self):
-        cursor = self.db.cursor()
-        select_query = "SELECT id, nombre_documento FROM documentos_word"
-        cursor.execute(select_query)
-        documents = cursor.fetchall()
-        for document in documents:
-            id, nombre = document
-            self.document_list.addItem(f"{id}: {nombre}")
-        cursor.close()
-
-    def open_document(self, item):
-        selected_item = item.text()
-        document_id = int(selected_item.split(':')[0])
-        cursor = self.db.cursor()
-        select_query = "SELECT nombre_documento, contenido FROM documentos_word WHERE id = %s"
-        cursor.execute(select_query, (document_id,))
-        document = cursor.fetchone()
-        if document:
-            nombre_documento, contenido = document
+    def save_document(self):
+        if self.file_name is not None:
+            text = self.text_edit.toPlainText()
             doc = Document()
-            doc.add_paragraph(contenido)
-            # Puedes abrir una nueva ventana o utilizar una librería para editar el documento, como python-docx
+            for line in text.split('\n'):
+                doc.add_paragraph(line)
+            doc.save(self.file_name)
+
+    def print_document(self):
+        if self.file_name is not None:
+            doc = SimpleDocTemplate("print_output.pdf", pagesize=letter)
+            styles = getSampleStyleSheet()
+            story = []
+            with open(self.file_name, 'r', encoding='utf-8') as file:
+                for line in file:
+                    story.append(Paragraph(line, styles["Normal"]))
+            doc.build(story)
+            os.system("lpr -P YOUR_PRINTER_NAME print_output.pdf")  # Reemplaza YOUR_PRINTER_NAME
+
+    def send_email(self):
+        if self.file_name is not None:
+            from_email = "tu_correo@gmail.com"  # Tu dirección de correo
+            password = "tu_contraseña"  # Tu contraseña
+            recipient_email = "destinatario@gmail.com"  # Correo del destinatario
+
+            subject = "Documento adjunto"
+            msg = MIMEMultipart()
+            msg["From"] = from_email
+            msg["To"] = recipient_email
+            msg["Subject"] = subject
+
+            with open(self.file_name, "rb") as file:
+                part = MIMEApplication(file.read(), Name=os.path.basename(self.file_name))
+            part["Content-Disposition"] = f'attachment; filename="{os.path.basename(self.file_name)}"'
+            msg.attach(part)
+
+            server = smtplib.SMTP("smtp.gmail.com", 587)
+            server.starttls()
+            server.login(from_email, password)
+            server.sendmail(from_email, recipient_email, msg.as_string())
+            server.quit()
+
+    def add_stamp(self):
+        if self.file_name is not None:
+            doc = Document(self.file_name)
+            doc.add_picture("stamp.png", width=inch * 2, height=inch * 2)
+            doc.save(self.file_name)
+
+    def fill_with_data(self):
+        if self.file_name is not None:
+            cursor = self.db.cursor()
+            select_query = "SELECT nombre, apellido, edad FROM datoscausas"
+            cursor.execute(select_query)
+            data = cursor.fetchone()
+            cursor.close()
+
+            doc = Document(self.file_name)
+            for paragraph in doc.paragraphs:
+                if "Nombre:" in paragraph.text:
+                    paragraph.clear()
+                    paragraph.add_run(f"Nombre: {data[0]}")
+                elif "Apellido:" in paragraph.text:
+                    paragraph.clear()
+                    paragraph.add_run(f"Apellido: {data[1]}")
+                elif "Edad:" in paragraph.text:
+                    paragraph.clear()
+                    paragraph.add_run(f"Edad: {data[2]}")
+            doc.save(self.file_name)
 
 def main():
     app = QApplication(sys.argv)
-    window = DocumentListApp()
+    window = WordDocumentApp()
     window.show()
     sys.exit(app.exec())
 
