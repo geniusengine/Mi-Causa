@@ -1,8 +1,10 @@
 import sys
 import mysql.connector
 from passlib.hash import bcrypt
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery
+from PyQt6.QtCore import QTimer
+from dashboard import DashboardApp
 
 class LoginApp(QMainWindow):
     def __init__(self):
@@ -39,9 +41,9 @@ class LoginApp(QMainWindow):
     def init_db(self):
         self.db = mysql.connector.connect(
             host="localhost",
-            user="tu_usuario_mysql",
-            password="tu_contraseña_mysql",
-            database="tu_base_de_datos_mysql"
+            user="root",
+            password="",
+            database="mi_causa"
         )
 
         if not self.db.is_connected():
@@ -64,11 +66,21 @@ class LoginApp(QMainWindow):
         if result:
             stored_password = result[0]
             if bcrypt.verify(password, stored_password):
-                print("Inicio de sesión exitoso.")
+                # Inicio de sesión exitoso
+                QMessageBox.information(self, "Inicio de Sesión", "Inicio de sesión exitoso.")
+
+                # Cerrar la ventana de inicio de sesión
+                self.close()
+
+                # Abrir la ventana del dashboard
+                dashboard_window = DashboardApp(username)
+                dashboard_window.show()
             else:
-                print("Contraseña incorrecta.")
+                # Contraseña incorrecta
+                QMessageBox.warning(self, "Inicio de Sesión", "Contraseña incorrecta.")
         else:
-            print("Usuario no encontrado.")
+            # Usuario no encontrado
+            QMessageBox.warning(self, "Inicio de Sesión", "Usuario no encontrado.")
 
     def close_db_connection(self):
         self.cursor.close()

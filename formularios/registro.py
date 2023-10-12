@@ -10,12 +10,13 @@ Auteur: danie(mitchel.dmch@gmail.com)
 registro.py(Ɔ) 2023
 Description : Saisissez la description puis « Tab »
 Créé le :  samedi 26 août 2023 à 18:37:13 
-Dernière modification : mercredi 4 octobre 2023 à 23:00:05
+Dernière modification : mercredi 11 octobre 2023 à 20:39:26
 """
 import sys
 import mysql.connector
 from passlib.hash import bcrypt
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox
+
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery
 
 class RegisterApp(QMainWindow):
@@ -61,9 +62,9 @@ class RegisterApp(QMainWindow):
     def init_db(self):
         self.db = mysql.connector.connect(
             host="localhost",
-            user="tu_usuario_mysql",
-            password="tu_contraseña_mysql",
-            database="tu_base_de_datos_mysql"
+            user="root",
+            password="",
+            database="mi_causa"
         )
 
         if not self.db.is_connected():
@@ -71,27 +72,38 @@ class RegisterApp(QMainWindow):
             sys.exit(1)
 
         self.cursor = self.db.cursor()
-
     def register_user(self):
         name = self.name_input.text()
         email = self.email_input.text()
         username = self.username_input.text()
         password = self.password_input.text()
 
-        # Cifrar la contraseña antes de almacenarla
+    # Verificar que los campos no estén vacíos
+        if not name or not email or not username or not password:
+            QMessageBox.warning(self, "Campos Vacíos", "Por favor, complete todos los campos.")
+            return
+
+    # Cifrar la contraseña antes de almacenarla
         hashed_password = bcrypt.hash(password)
 
-        # Insertar el nuevo usuario en la base de datos MySQL
-        sql = "INSERT INTO usuarios (nombre, email, username, password) VALUES (%s, %s, %s, %s)"
+    # Insertar el nuevo usuario en la base de datos MySQL
+        sql = "INSERT INTO usuarios (name, email, username, password) VALUES (%s, %s, %s, %s)"
         values = (name, email, username, hashed_password)
 
         try:
             self.cursor.execute(sql, values)
             self.db.commit()
-            print("Registro exitoso.")
+            QMessageBox.information(self, "Registro Exitoso", "Usuario registrado correctamente.")
+            self.name_input.clear()
+            self.email_input.clear()
+            self.username_input.clear()
+            self.password_input.clear()
         except Exception as e:
             print("Error al registrar el usuario:", e)
             self.db.rollback()
+            QMessageBox.warning(self, "Error de Registro", "No se pudo registrar el usuario. Inténtalo de nuevo.")
+
+
 
     def close_db_connection(self):
         self.cursor.close()
