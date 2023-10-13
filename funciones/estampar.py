@@ -1,66 +1,67 @@
-"""
- _______       _            _     _          ______        _                 _ 
-(_______)     (_)       _  (_)   | |        (____  \      (_)               | |
- _______  ____ _  ___ _| |_ _  __| |_____    ____)  ) ____ _ _____ ____   __| |
-|  ___  |/ ___) |/___|_   _) |/ _  | ___ |  |  __  ( / ___) (____ |  _ \ / _  |
-| |   | | |   | |___ | | |_| ( (_| | ____|  | |__)  ) |   | / ___ | | | ( (_| |
-|_|   |_|_|   |_(___/   \__)_|\____|_____)  |______/|_|   |_\_____|_| |_|\____|
-    
-Auteur: danie(danie.pro@gmail.com) 
-estampados.py(Ɔ) 2023
-Description : Saisissez la description puis « Tab »
-Créé le :  mercredi 4 octobre 2023 à 21:16:55 
-Dernière modification : mercredi 4 octobre 2023 à 21:27:07
-"""
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton
-from PyQt6.QtGui import QPainter, QPixmap, QImage, QPen, QColor
+import os
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QLabel, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
+import docx
 
-class FichaDeRolApp(QMainWindow):
-    def init(self):
-        super().init()
+class WordFileApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Aplicación para Archivos de Word")
+        self.setGeometry(100, 100, 800, 600)
 
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("Ficha de Rol con Estampados Judiciales")
-        self.setGeometry(100, 100, 800, 600)
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
 
-        central_widget = QWidget(self)
-        self.setCentralWidget(central_widget)
+        self.layout = QVBoxLayout()
 
-        layout = QVBoxLayout()
-        central_widget.setLayout(layout)
+        self.loadButton = QPushButton("Cargar Archivo Word")
+        self.loadButton.clicked.connect(self.loadWordFile)
+        self.layout.addWidget(self.loadButton)
 
-        self.label = QLabel(self)
-        layout.addWidget(self.label)
+        self.fileInfoLabel = QLabel()
+        self.layout.addWidget(self.fileInfoLabel)
 
-        self.addButton = QPushButton("Agregar Estampado Judicial", self)
-        layout.addWidget(self.addButton)
-        self.addButton.clicked.connect(self.agregarEstampado)
+        self.contentLabel = QLabel()
+        self.layout.addWidget(self.contentLabel)
+        self.contentLabel.setFixedHeight(400)
 
-        self.canvas = QImage(self.size(), QImage.Format_RGBA8888)
-        self.canvas.fill(Qt.GlobalColor.white.value)
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.drawImage(0, 0, self.canvas)
+        self.stampLabel = QLabel()
+        self.layout.addWidget(self.stampLabel)
 
-    def agregarEstampado(self):
-        # Simplemente, dibujemos una línea roja como ejemplo de estampado judicial.
-        painter = QPainter(self.canvas)
-        painter.setPen(QPen(QColor(Qt.GlobalColor.red)))
-        painter.drawLine(50, 50, 200, 200)
-        painter.end()
+        self.central_widget.setLayout(self.layout)
 
-        self.update()
+        self.file_path = None
 
-def main():
-    app = QApplication(sys.argv)
-    window = FichaDeRolApp()
-    window.show()
-    sys.exit(app.exec())
+    def loadWordFile(self):
+
+        file_path, _ = QFileDialog.getOpenFileName(self, "Abrir archivo de Word", "", "Archivos de Word (*.docx *.doc)")
+
+        if file_path:
+            self.file_path = file_path
+            self.fileInfoLabel.setText(f"Archivo seleccionado: {os.path.basename(file_path)}")
+
+            # Extraer el contenido del archivo Word
+            doc = docx.Document(file_path)
+            content = ""
+            for paragraph in doc.paragraphs:
+                content += paragraph.text + "\n"
+
+            self.contentLabel.setText(content)
+
+            # Agregar el estampado (imagen PNG) en la parte inferior derecha
+            stamp = QPixmap("recursos\perra.png")
+            self.stampLabel.setPixmap(stamp)
+            self.stampLabel.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
 
 if __name__ == '__main__':
-    main()
+    app = QApplication(sys.argv)
+    window = WordFileApp()
+    window.show()
+    sys.exit(app.exec())

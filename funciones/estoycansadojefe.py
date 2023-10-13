@@ -1,3 +1,4 @@
+
 import sys
 import os
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTextEdit, QPushButton, QVBoxLayout, QWidget, QFileDialog
@@ -11,6 +12,7 @@ from reportlab.lib.units import inch
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 import smtplib
+
 
 class WordDocumentApp(QMainWindow):
     def __init__(self):
@@ -60,9 +62,9 @@ class WordDocumentApp(QMainWindow):
 
         self.db = mysql.connector.connect(
             host="localhost",
-            user="tu_usuario",
-            password="tu_contraseña",
-            database="tu_base_de_datos"
+            user="root",
+            password="",
+            database="mi_causa"
         )
 
     def load_word_doc(self):
@@ -115,12 +117,27 @@ class WordDocumentApp(QMainWindow):
             server.login(from_email, password)
             server.sendmail(from_email, recipient_email, msg.as_string())
             server.quit()
+    
+
+  
 
     def add_stamp(self):
-        if self.file_name is not None:
-            doc = Document(self.file_name)
-            doc.add_picture("stamp.png", width=inch * 2, height=inch * 2)
-            doc.save(self.file_name)
+
+        doc = Document(self.file_name)
+
+        # Agregar un nuevo párrafo al documento.
+        paragraph = doc.add_paragraph()
+
+        # Agregar un nuevo fragmento de texto al párrafo.
+        run = paragraph.add_run()
+
+        # Agregar la imagen del estampado al fragmento de texto.
+        run.add_picture("recursos\hola.png")
+
+        # Regresar el documento con el estampado agregado.
+        return doc
+
+
 
     def fill_with_data(self):
         if self.file_name is not None:

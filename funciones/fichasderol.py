@@ -54,11 +54,12 @@ class WordDocumentApp(QMainWindow):
     def save_to_database(self):
         if self.file_name is not None:  # Asegúrate de que file_name esté definido
             text = self.text_edit.toPlainText()
+            file_name = "a.doc"
 
             # Insertar el texto en la base de datos
             cursor = self.db.cursor()
             insert_query = "INSERT INTO documentos_word (nombre_documento, contenido) VALUES (%s, %s)"
-            archivo_doc = (os.path.basename(self.file_name), text.encode('utf-8'))
+            archivo_doc = (os.path.basename(file_name), text.encode('utf-8').decode('utf-8'))
             cursor.execute(insert_query, archivo_doc)
             self.db.commit()
             cursor.close()
