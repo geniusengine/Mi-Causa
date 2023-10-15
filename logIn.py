@@ -4,7 +4,7 @@ from passlib.hash import bcrypt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery
 from PyQt6.QtCore import QTimer
-from dashboard import DashboardApp
+from dashboard import Dashboard
 
 class LoginApp(QMainWindow):
     def __init__(self):
@@ -73,7 +73,7 @@ class LoginApp(QMainWindow):
                 self.close()
 
                 # Abrir la ventana del dashboard
-                self.dashboard_window = DashboardApp()
+                self.dashboard_window = Dashboard()
                 self.dashboard_window.show()
             else:
                 # Contraseña incorrecta
