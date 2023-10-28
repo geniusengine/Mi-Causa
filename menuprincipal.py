@@ -1,18 +1,3 @@
-"""
- _______       _            _     _          ______        _                 _ 
-(_______)     (_)       _  (_)   | |        (____  \      (_)               | |
- _______  ____ _  ___ _| |_ _  __| |_____    ____)  ) ____ _ _____ ____   __| |
-|  ___  |/ ___) |/___|_   _) |/ _  | ___ |  |  __  ( / ___) (____ |  _ \ / _  |
-| |   | | |   | |___ | | |_| ( (_| | ____|  | |__)  ) |   | / ___ | | | ( (_| |
-|_|   |_|_|   |_(___/   \__)_|\____|_____)  |______/|_|   |_\_____|_| |_|\____|
-    
-Auteur: danie(mitchel.dmch@gmail.com) 
-menuprincipal.py(Ɔ) 2023
-Description : Saisissez la description puis « Tab »
-Créé le :  samedi 26 août 2023 à 18:44:12 
-Dernière modification : mercredi 4 octobre 2023 à 21:50:22
-"""
-
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QMessageBox, QInputDialog
 from login import LoginApp
